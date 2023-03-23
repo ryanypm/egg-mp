@@ -160,6 +160,7 @@ class MPService extends Service {
     const {
       appId,
       mchId,
+      notifyUrl,
     } = app.config.mp;
     const params = {
       openid,
@@ -168,9 +169,10 @@ class MPService extends Service {
       nonce_str: service.sign.createNonceStr(),
       out_trade_no: data.tradeNo || new Date().getTime(), // 内部订单号
       total_fee: data.totalFee || 1, // 单位为分的标价金额
+      attach: data.attach || '',
       body: data.body || '未知产品-测试商品', // 应用市场上的APP名字-商品概述	
       spbill_create_ip: ctx.ip, // 支付提交用户端ip
-      notify_url: data.notifyUrl || '', // 异步接收微信支付结果通知
+      notify_url: notifyUrl || '', // 异步接收微信支付结果通知
       trade_type: 'JSAPI',
     };
     params.sign = service.sign.getPaySign(params); // 首次签名，用于验证支付通知
@@ -195,6 +197,34 @@ class MPService extends Service {
     }; // 不能随意增减，必须是这些字段
     res.paySign = service.sign.getPaySign(res); // 第二次签名，用于提交到微信
     return res;
+  }
+
+  checkSign(originSign, data) {
+    const {
+      app,
+      ctx,
+      service,
+    } = this;
+    const {
+      appId,
+      mchId,
+      notifyUrl,
+    } = app.config.mp;
+    const params = {
+      openid,
+      appid: appId,
+      mch_id: mchId,
+      nonce_str: data.nonce_str,
+      out_trade_no: data.out_trade_no, // 内部订单号
+      total_fee: Number(data.cash_fee), // 单位为分的标价金额
+      attach: data.attach || '',
+      body: data.body || '未知产品-测试商品', // 应用市场上的APP名字-商品概述	
+      spbill_create_ip: ctx.ip, // 支付提交用户端ip
+      notify_url: notifyUrl || '', // 异步接收微信支付结果通知
+      trade_type: 'JSAPI',
+    };
+    params.sign = service.sign.getPaySign(params); // 首次签名，用于验证支付通知
+    return { result: params.sign === originSign, params };
   }
 }
 
